@@ -1,19 +1,24 @@
 # Dockerfile para IVO Frontend - Produção
 FROM node:18-alpine AS base
 
-# Instalar dependências apenas quando necessário
+# Instalar dependências de produção
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-
-# Copiar package files
 COPY package.json package-lock.json* ./
 RUN npm ci --only=production && npm cache clean --force
+
+# Instalar todas as dependências (incluindo dev) para o build
+FROM base AS deps-build
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci && npm cache clean --force
 
 # Rebuild source code apenas quando necessário
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps-build /app/node_modules ./node_modules
 COPY . .
 
 # Desabilitar telemetria do Next.js durante build
