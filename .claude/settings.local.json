@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Ivo-API/**)",
+      "Read(/C:\\Ivo-API/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
