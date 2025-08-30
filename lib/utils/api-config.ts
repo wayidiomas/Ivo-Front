@@ -98,12 +98,6 @@ export async function apiCall(
   
   console.log(`🌐 API Call: ${options.method || 'GET'} ${url}`)
   
-  // Debug apenas em produção para identificar o problema
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    console.log(`🔧 API_CONFIG.BASE_URL: ${API_CONFIG.BASE_URL}`)
-    console.log(`🔧 NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`)
-  }
-  
   try {
     const response = await fetch(url, config)
     
