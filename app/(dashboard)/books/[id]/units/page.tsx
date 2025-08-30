@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +42,8 @@ import { unitsApi } from "@/lib/api/units"
 import type { Unit } from "@/lib/types/api.types"
 import { booksApi, type Book } from "@/lib/api/books"
 import { coursesApi, type Course } from "@/lib/api/courses"
+import { UnitsPageSkeleton } from "@/components/ui/skeletons"
+import { getBookFullData, type BookFullData } from "@/lib/api/dashboard"
 
 const STATUS_MAP = {
   'creating': { label: 'Criando', color: 'bg-blue-500', icon: Loader2 },
@@ -67,6 +69,7 @@ export default function BookUnitsPage() {
   const [units, setUnits] = useState<Unit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [bookStats, setBookStats] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -76,26 +79,35 @@ export default function BookUnitsPage() {
       setLoading(true)
       setError(null)
       
-      // Carregar dados do book
-      const bookResponse = await booksApi.getBook(bookId, { include_units: true })
-      const bookData = bookResponse.data.book
-      setBook(bookData)
+      // 🚀 OTIMIZAÇÃO: 1 chamada em vez de 3 sequenciais
+      const response = await getBookFullData(bookId)
       
-      // Carregar dados do course
-      if (bookData.course_id) {
-        const courseResponse = await coursesApi.getCourse(bookData.course_id)
-        setCourse(courseResponse.data.course)
+      if (response.success && response.data) {
+        const { book: bookData, course: courseData, units: unitsData, stats } = response.data
+        
+        // Converter para os tipos esperados pelo componente
+        setBook(bookData as any)
+        setCourse(courseData as any)
+        
+        // Converter units com todos os campos necessários
+        const formattedUnits = unitsData.map(unit => ({
+          id: unit.id,
+          title: unit.title,
+          context: unit.context,
+          status: unit.status,
+          unit_type: unit.unit_type,
+          cefr_level: unit.cefr_level,
+          sequence_order: unit.sequence_order,
+          quality_score: unit.quality_score,
+          created_at: unit.created_at,
+          updated_at: unit.updated_at,
+          main_aim: unit.main_aim,
+          images: unit.images
+        } as Unit))
+        
+        setUnits(formattedUnits)
+        setBookStats(stats)
       }
-      
-      // Carregar units do book
-      const unitsResponse = await unitsApi.listUnitsByBook(bookId, {
-        page: 1,
-        size: 50,
-        sort_by: 'sequence_order',
-        sort_order: 'asc'
-      })
-      
-      setUnits(unitsResponse.data)
     } catch (err) {
       console.error('Erro ao carregar dados:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados')
@@ -115,31 +127,34 @@ export default function BookUnitsPage() {
     loadData() // Recarregar para atualizar estatísticas
   }
 
-  // Filtrar units baseado nos filtros
-  const filteredUnits = units.filter(unit => {
-    const matchesSearch = (unit.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (unit.context?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || unit.status === statusFilter
-    const matchesType = typeFilter === 'all' || unit.unit_type === typeFilter
-    
-    return matchesSearch && matchesStatus && matchesType
-  })
+  // Filtrar units baseado nos filtros - otimizado com useMemo
+  const filteredUnits = useMemo(() => {
+    return units.filter(unit => {
+      const matchesSearch = (unit.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                           (unit.context?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === 'all' || unit.status === statusFilter
+      const matchesType = typeFilter === 'all' || unit.unit_type === typeFilter
+      
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [units, searchTerm, statusFilter, typeFilter])
 
-  // Estatísticas
-  const stats = {
-    total: units.length,
-    completed: units.filter(u => u.status === 'completed').length,
-    creating: units.filter(u => u.status === 'creating').length,
-    pending: units.filter(u => u.status === 'assessments_pending').length,
-  }
+  // Estatísticas - usar dados do backend se disponível, senão calcular
+  const stats = useMemo(() => {
+    if (bookStats) {
+      return bookStats
+    }
+    // Fallback para cálculo client-side
+    return {
+      total: units.length,
+      completed: units.filter(u => u.status === 'completed').length,
+      creating: units.filter(u => u.status === 'creating').length,
+      pending: units.filter(u => u.status === 'assessments_pending').length,
+    }
+  }, [units, bookStats])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2 text-muted-foreground">Carregando unidades...</span>
-      </div>
-    )
+    return <UnitsPageSkeleton />
   }
 
   if (error) {

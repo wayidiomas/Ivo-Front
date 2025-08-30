@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { AiGenerateButton } from "@/components/courses/ai-generate-button"
 import { dashboardService, DashboardStats, RecentUnit } from "@/lib/api/dashboard"
+import { DashboardSkeleton } from "@/components/ui/skeletons"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -114,6 +115,10 @@ export default function DashboardPage() {
       fetchDashboardData()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) {
+    return <DashboardSkeleton />
+  }
 
   return (
     <div className="space-y-6">
