@@ -89,7 +89,7 @@ export default function BookUnitsPage() {
         setBook(bookData as any)
         setCourse(courseData as any)
         
-        // Converter units com todos os campos necessários
+        // Converter units com todos os campos necessários para o tipo Unit
         const formattedUnits = unitsData.map(unit => ({
           id: unit.id,
           title: unit.title,
@@ -102,7 +102,17 @@ export default function BookUnitsPage() {
           created_at: unit.created_at,
           updated_at: unit.updated_at,
           main_aim: unit.main_aim,
-          images: unit.images
+          images: unit.images,
+          // Campos obrigatórios do tipo Unit com valores padrão
+          course_id: bookData.course_id,
+          book_id: bookData.id,
+          subsidiary_aims: [],
+          language_variant: 'american_english',
+          strategies_used: [],
+          assessments_used: [],
+          vocabulary_taught: [],
+          pronunciation_focus: [],
+          checklist_completed: []
         } as Unit))
         
         setUnits(formattedUnits)
