@@ -48,11 +48,14 @@ export function getApiUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   
   // Para desenvolvimento local, usa proxy do Next.js
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  
+  if (isLocalhost) {
     return `/${cleanEndpoint}`
   }
   
-  // Para produção ou server-side, usa URL completa
+  // Para produção, sempre usar URL completa
   return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`
 }
 
@@ -94,6 +97,12 @@ export async function apiCall(
   }
   
   console.log(`🌐 API Call: ${options.method || 'GET'} ${url}`)
+  
+  // Debug apenas em produção para identificar o problema
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    console.log(`🔧 API_CONFIG.BASE_URL: ${API_CONFIG.BASE_URL}`)
+    console.log(`🔧 NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`)
+  }
   
   try {
     const response = await fetch(url, config)
