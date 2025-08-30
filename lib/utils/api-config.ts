@@ -47,15 +47,14 @@ export function getApiUrl(endpoint: string): string {
   // Remove barra inicial se existir
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   
-  // Para desenvolvimento local, usa proxy do Next.js
-  const isLocalhost = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  
-  if (isLocalhost) {
+  // SEMPRE usar proxy quando disponível (server.js customizado ou Next.js)
+  // Tanto em desenvolvimento quanto em produção
+  if (typeof window !== 'undefined') {
+    // Client-side: sempre usar proxy relativo
     return `/${cleanEndpoint}`
   }
   
-  // Para produção, sempre usar URL completa
+  // Server-side: usar URL completa
   return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`
 }
 
