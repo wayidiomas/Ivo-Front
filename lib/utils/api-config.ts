@@ -48,7 +48,7 @@ export function getApiUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   
   // Para desenvolvimento local, usa proxy do Next.js
-  if (typeof window !== 'undefined' && API_CONFIG.IS_DEVELOPMENT) {
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     return `/${cleanEndpoint}`
   }
   
